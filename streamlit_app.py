@@ -58,6 +58,10 @@ def get_nearby_clinics(postal_code: str) -> list:
     # Stub: integrate clinic DB/API
     return []
 
+# --- Navigation ---
+def go_to_step(step: int):
+    st.session_state.step = step
+
 # --- Destination management callbacks ---
 def add_destination():
     if "destinations" not in st.session_state:
@@ -71,7 +75,7 @@ def remove_destination(idx):
 
 # --- Step 1: Traveler Profile ---
 def traveler_info():
-    st.header("1. Tell us about yourself")
+    st.header("1. Traveler Profile")
     cols = st.columns(2)
     cols[0].number_input("Age", min_value=0, max_value=120, value=30, key="age")
     cols[1].selectbox("Sex at birth", ["Female", "Male", "Other"], key="sex_at_birth")
@@ -98,12 +102,11 @@ def traveler_info():
     cols[1].radio("Family history of pulmonary embolism?", ["Yes", "No"], index=1, key="family_pe")
 
     # Continue button for mobile navigation
-    if st.button("Continue to Destination ▶"):
-        st.session_state.step = 1
+    st.button("Continue to Destination ▶", on_click=go_to_step, args=(1,))
 
 # --- Step 2: Destination Info ---
 def destination_info():
-    st.header("2. Tells us where your going")
+    st.header("2. Destination Information")
     if "destinations" not in st.session_state:
         st.session_state.destinations = [0]
 
@@ -124,20 +127,15 @@ def destination_info():
                 act_cols[i % 2].checkbox(act, key=f"activities_{idx}_{i}")
 
             if idx > 0:
-                st.button("Remove this destination", key=f"remove_{idx}",
-                          on_click=remove_destination, args=(idx,))
+                st.button("Remove this destination", on_click=remove_destination, args=(idx,), key=f"remove_{idx}")
 
     st.button("Add another destination", on_click=add_destination)
-
-    # Continue to review
-    if st.button("Continue to Review ▶"):
-        st.session_state.step = 2
+    st.button("Continue to Review ▶", on_click=go_to_step, args=(2,))
 
 # --- Step 3: Review & Submit ---
 def validate_inputs():
     st.header("3. Review & Submit")
     errors = []
-
     if st.session_state.get("age") is None:
         errors.append("Please enter your age.")
     if not st.session_state.get("sex_at_birth"):
@@ -166,8 +164,7 @@ def validate_inputs():
         for err in errors:
             st.error(err)
     else:
-        if st.button("Generate Advisory Report"):
-            st.session_state.step = 3
+        st.button("Generate Advisory Report", on_click=go_to_step, args=(3,))
 
 # --- Step 4: Report Generation ---
 def generate_report():
@@ -180,8 +177,7 @@ def generate_report():
         data["traveler"][key] = st.session_state.get(key)
 
     for idx in st.session_state.destinations:
-        activities = [ACTIVITIES[i] for i in range(len(ACTIVITIES))
-                      if st.session_state.get(f"activities_{idx}_{i}")]
+        activities = [ACTIVITIES[i] for i in range(len(ACTIVITIES)) if st.session_state.get(f"activities_{idx}_{i}")]
         data["destinations"].append({
             "country": st.session_state.get(f"country_{idx}"),
             "city": st.session_state.get(f"city_{idx}"),
@@ -196,18 +192,14 @@ def generate_report():
         st.subheader(section["title"])
         st.write(section["content"])
 
-    # Continue to clinics
-    if st.button("Find Nearby Clinics ▶"):
-        st.session_state.step = 4
+    st.button("Find Nearby Clinics ▶", on_click=go_to_step, args=(4,))
 
 # --- Step 5: Clinic Locator ---
 def clinic_map():
     st.header("5. Find Nearby Travel Clinics")
     postal_code = st.text_input("Enter your Canadian postal code:")
-    if st.button("Search Clinics"):
-        if not postal_code:
-            st.error("Please enter a postal code.")
-            return
+    st.button("Search Clinics")
+    if postal_code:
         st.info("Looking up clinics—feature under development...")
         clinics = get_nearby_clinics(postal_code)
         if clinics:
@@ -220,7 +212,7 @@ def clinic_map():
 # --- Main Application ---
 def main():
     st.set_page_config(page_title="Travel Vaccination Assistant", layout="wide")
-    st.title("Travel Vaccination Advisory")
+    st.title("Travel Vaccination Assistant (Prototype)")
 
     steps = [
         "Traveler Profile",
