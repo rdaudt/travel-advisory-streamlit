@@ -71,7 +71,7 @@ def remove_destination(idx):
 
 # --- Step 1: Traveler Profile ---
 def traveler_info():
-    st.header("1. Traveler Profile")
+    st.header("1. Tell us about yourself")
     cols = st.columns(2)
     cols[0].number_input("Age", min_value=0, max_value=120, value=30, key="age")
     cols[1].selectbox("Sex at birth", ["Female", "Male", "Other"], key="sex_at_birth")
@@ -97,9 +97,13 @@ def traveler_info():
     cols[0].radio("Family history of blood clots/DVT?", ["Yes", "No"], index=1, key="family_dvt")
     cols[1].radio("Family history of pulmonary embolism?", ["Yes", "No"], index=1, key="family_pe")
 
+    # Continue button for mobile navigation
+    if st.button("Continue to Destination ▶"):
+        st.session_state.step = 1
+
 # --- Step 2: Destination Info ---
 def destination_info():
-    st.header("2. Destination Information")
+    st.header("2. Tells us where your going")
     if "destinations" not in st.session_state:
         st.session_state.destinations = [0]
 
@@ -124,6 +128,10 @@ def destination_info():
                           on_click=remove_destination, args=(idx,))
 
     st.button("Add another destination", on_click=add_destination)
+
+    # Continue to review
+    if st.button("Continue to Review ▶"):
+        st.session_state.step = 2
 
 # --- Step 3: Review & Submit ---
 def validate_inputs():
@@ -158,7 +166,8 @@ def validate_inputs():
         for err in errors:
             st.error(err)
     else:
-        st.button("Generate Advisory Report", on_click=lambda: setattr(st.session_state, 'step', 3))
+        if st.button("Generate Advisory Report"):
+            st.session_state.step = 3
 
 # --- Step 4: Report Generation ---
 def generate_report():
@@ -187,12 +196,18 @@ def generate_report():
         st.subheader(section["title"])
         st.write(section["content"])
 
+    # Continue to clinics
+    if st.button("Find Nearby Clinics ▶"):
+        st.session_state.step = 4
+
 # --- Step 5: Clinic Locator ---
 def clinic_map():
     st.header("5. Find Nearby Travel Clinics")
     postal_code = st.text_input("Enter your Canadian postal code:")
-    st.button("Search Clinics", on_click=lambda: None)
-    if postal_code:
+    if st.button("Search Clinics"):
+        if not postal_code:
+            st.error("Please enter a postal code.")
+            return
         st.info("Looking up clinics—feature under development...")
         clinics = get_nearby_clinics(postal_code)
         if clinics:
@@ -205,7 +220,7 @@ def clinic_map():
 # --- Main Application ---
 def main():
     st.set_page_config(page_title="Travel Vaccination Assistant", layout="wide")
-    st.title("Travel Vaccination Assistant (Prototype)")
+    st.title("Travel Vaccination Advisory")
 
     steps = [
         "Traveler Profile",
