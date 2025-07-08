@@ -75,38 +75,47 @@ def remove_destination(idx):
 
 # --- Step 1: Traveler Profile ---
 def traveler_info():
-    st.header("1. Traveler Profile")
+    st.header("1. Tell us about yourself")
     cols = st.columns(2)
-    cols[0].number_input("Age", min_value=0, max_value=120, value=30, key="age")
-    cols[1].selectbox("Sex at birth", ["Female", "Male", "Other"], key="sex_at_birth")
+    cols[0].number_input("Age", min_value=0, max_value=120, 
+                        value=30, key="age")
+    
+    cols[1].selectbox("Sex at birth", ["Female", "Male", "Other"], 
+                     key="sex_at_birth")
 
     if st.session_state.get("sex_at_birth") == "Female":
-        st.radio(
-            "Pregnancy/Breastfeeding status",
-            ["Not pregnant/not breastfeeding", "Pregnant", "Breastfeeding"],
-            key="preg_status"
-        )
+        st.radio("Pregnancy/Breastfeeding status", 
+                ["Not pregnant/not breastfeeding", "Pregnant", "Breastfeeding"], 
+                key="preg_status")
 
-    st.radio("Received all childhood vaccinations?", ["Yes", "No", "Not sure"], key="childhood_vax")
+    st.radio("Received all childhood vaccinations?", ["Yes", "No", "Not sure"], 
+            key="childhood_vax")
+    
     if st.session_state.get("childhood_vax") == "No":
         st.multiselect("Which vaccines were not taken?",
                        ["MMR", "DTP", "Polio", "Varicella", "Other"],
                        key="missing_vax")
 
-    st.text_area("Known medical conditions (optional)", key="med_conditions", height=100)
-    st.text_area("Current medications (optional)", key="medications", height=100)
-    st.text_area("Known allergies (optional)", key="allergies", height=100)
+    st.text_area("Known medical conditions (optional)", 
+                key="med_conditions", height=100)
+    st.text_area("Current medications (optional)", 
+                key="medications", height=100)
+    st.text_area("Known allergies (optional)", 
+                key="allergies", height=100)
 
     cols = st.columns(2)
-    cols[0].radio("Family history of blood clots/DVT?", ["Yes", "No"], index=1, key="family_dvt")
-    cols[1].radio("Family history of pulmonary embolism?", ["Yes", "No"], index=1, key="family_pe")
+    cols[0].radio("Family history of blood clots/DVT?", ["Yes", "No"], 
+                 index=1, key="family_dvt")
+    
+    cols[1].radio("Family history of pulmonary embolism?", ["Yes", "No"], 
+                 index=1, key="family_pe")
 
     # Continue button for mobile navigation
     st.button("Continue to Destination ▶", on_click=go_to_step, args=(1,))
 
 # --- Step 2: Destination Info ---
 def destination_info():
-    st.header("2. Destination Information")
+    st.header("2. Where are you going?")
     if "destinations" not in st.session_state:
         st.session_state.destinations = [0]
 
@@ -121,6 +130,7 @@ def destination_info():
             cols[1].number_input("Duration (days)", min_value=1, key=f"days_{idx}")
 
             st.selectbox("Accommodation type", ACCOMMODATION_TYPES, key=f"accom_{idx}")
+            
             st.markdown("**Planned Activities**")
             act_cols = st.columns(2)
             for i, act in enumerate(ACTIVITIES):
@@ -163,7 +173,9 @@ def validate_inputs():
     if errors:
         for err in errors:
             st.error(err)
+        st.button("Back to Edit ◀", on_click=go_to_step, args=(1,))
     else:
+        st.success("All information looks good! Ready to generate your report.")
         st.button("Generate Advisory Report", on_click=go_to_step, args=(3,))
 
 # --- Step 4: Report Generation ---
@@ -197,22 +209,26 @@ def generate_report():
 # --- Step 5: Clinic Locator ---
 def clinic_map():
     st.header("5. Find Nearby Travel Clinics")
-    postal_code = st.text_input("Enter your Canadian postal code:")
-    st.button("Search Clinics")
-    if postal_code:
-        st.info("Looking up clinics—feature under development...")
-        clinics = get_nearby_clinics(postal_code)
-        if clinics:
-            import pandas as pd
-            df = pd.DataFrame(clinics)
-            st.map(df)
+    postal_code = st.text_input("Enter your Canadian postal code:", 
+                               value=st.session_state.get("postal_code", ""), key="postal_code")
+    
+    if st.button("Search Clinics"):
+        if postal_code:
+            st.info("Looking up clinics—feature under development...")
+            clinics = get_nearby_clinics(postal_code)
+            if clinics:
+                import pandas as pd
+                df = pd.DataFrame(clinics)
+                st.map(df)
+            else:
+                st.info("No clinics found or service not yet available.")
         else:
-            st.info("No clinics found or service not yet available.")
+            st.warning("Please enter a postal code first.")
 
 # --- Main Application ---
 def main():
     st.set_page_config(page_title="Travel Vaccination Assistant", layout="wide")
-    st.title("Travel Vaccination Assistant (Prototype)")
+    st.title("Travel Vaccination Advisory")
 
     steps = [
         "Traveler Profile",
@@ -221,11 +237,26 @@ def main():
         "Generate Report",
         "Travel Clinics"
     ]
+    
+    # Initialize session state
     if "step" not in st.session_state:
         st.session_state.step = 0
+    
+    # Add debug info in sidebar
+    with st.sidebar.expander("Debug Info"):
+        st.write("Current step:", st.session_state.step)
+        st.write("Session state keys:", list(st.session_state.keys()))
+        if st.button("Clear session state"):
+            st.session_state.clear()
+            st.experimental_rerun()
+    
+    # Only update step if sidebar selection differs from current step
     choice = st.sidebar.radio("Go to step:", steps, index=st.session_state.step)
-    st.session_state.step = steps.index(choice)
+    selected_step = steps.index(choice)
+    if selected_step != st.session_state.step:
+        st.session_state.step = selected_step
 
+    # Route to appropriate step
     if st.session_state.step == 0:
         traveler_info()
     elif st.session_state.step == 1:

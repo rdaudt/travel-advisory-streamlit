@@ -19,3 +19,8 @@ __pycache__/
 
 # Ignore bat files if not needed in repo
 *.bat
+
+# Ignore doc files
+*.doc
+*.docx
+*.pdf
